@@ -17,9 +17,11 @@
     {% if ads %}
         <ul class='list-group'>
             {% for ad in ads %}
-                <li class='list-group-item'>
-                    <a href="{% url 'ad_detail' ad.pk %}">{{ ad.title }}</a>
-                </li>
+                {% if ad.slug %}
+                    <li class='list-group-item'>
+                        <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
+                    </li>
+                {% endif %}
             {% endfor %}
         </ul>
     {% else %}

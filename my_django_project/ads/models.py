@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils.text import slugify
 
 class Ad(models.Model):
     title = models.CharField("Заголовок", max_length=255)
@@ -12,7 +13,13 @@ class Ad(models.Model):
         related_name='ads',
         verbose_name="Автор"
     )
+    slug = models.SlugField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField("Дата создания", auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

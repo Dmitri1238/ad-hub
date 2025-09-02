@@ -16,10 +16,10 @@
             <p>{{ ad.description }}</p>
 
             {% if user.is_authenticated and user == ad.author %}
-                <a href="{% url 'ad_edit' ad.pk %}" class="btn btn-primary me-2">Редактировать</a>
+                <a href="{% url 'ad_edit' slug=ad.slug %}" class="btn btn-primary me-2">Редактировать</a>
 
                 <!-- Удаление -->
-                <form action="{% url 'ad_delete' ad.pk %}" method="post" class="d-inline-block">
+                <form action="{% url 'ad_delete' slug=ad.slug %}" method="post" class="d-inline-block">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger">Удалить</button>
                 </form>

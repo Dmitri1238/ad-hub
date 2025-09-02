@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from .models import Ad, Request
 from .forms import AdForm, RequestForm
+from django.utils.text import slugify
+import uuid
 
 # Список всех объявлений
 def ad_list(request):
@@ -10,8 +12,8 @@ def ad_list(request):
     return render(request, 'ads/ad_list.html', {'ads': ads})
 
 # Детальный просмотр объявления
-def ad_detail(request, pk):
-    ad = get_object_or_404(Ad, pk=pk)
+def ad_detail(request, slug):
+    ad = get_object_or_404(Ad, slug=slug)
     return render(request, 'ads/ad_detail.html', {'ad': ad})
 
 # Создание объявления (только для авторизованных)
@@ -22,30 +24,43 @@ def ad_create(request):
         if form.is_valid():
             ad = form.save(commit=False)
             ad.author = request.user
+
+            # Генерируем уникальный slug, если его еще нет
+            if not ad.slug:
+                ad.slug = generate_unique_slug(ad)
+
             ad.save()
-            return redirect('ad_detail', pk=ad.pk)
+            return redirect('ad_detail', slug=ad.slug)
     else:
         form = AdForm()
     return render(request, 'ads/ad_form.html', {'form': form})
 
+def generate_unique_slug(instance):
+    slug_base = slugify(instance.title)
+    slug = slug_base
+    while Ad.objects.filter(slug=slug).exists():
+        slug = f"{slug_base}-{uuid.uuid4().hex[:8]}"
+    return slug
+
 # Редактирование объявления (только для автора)
 @login_required
-def ad_edit(request, pk):
-    ad = get_object_or_404(Ad, pk=pk)
+def ad_edit(request, slug):
+    ad = get_object_or_404(Ad, slug=slug)
+    if request.user != ad.author:
+        return HttpResponseForbidden("Вы не можете редактировать это объявление.")
     if request.method == 'POST':
         form = AdForm(request.POST, instance=ad)
         if form.is_valid():
             form.save()
-            # замените 'ad_detail' на актуальное имя вашего маршрута
-            return redirect('ad_detail', pk=ad.pk)
+            return redirect('ad_detail', slug=ad.slug)
     else:
         form = AdForm(instance=ad)
-    return render(request, 'ads/ad_edit.html', {'form': form})
+    return render(request, 'ads/ad_edit.html', {'form': form, 'ad': ad})
 
 # Удаление объявления (только для автора)
 @login_required
-def ad_delete(request, pk):
-    ad = get_object_or_404(Ad, pk=pk)
+def ad_delete(request, slug):
+    ad = get_object_or_404(Ad, slug=slug)
     if request.user != ad.author:
         return HttpResponseForbidden("Вы не можете удалять это объявление.")
     if request.method == 'POST':
@@ -61,13 +76,12 @@ def my_ads(request):
 
 # Отправка заявки на объявление
 @login_required
-def send_request(request, ad_pk):
-    ad = get_object_or_404(Ad, pk=ad_pk)
+def send_request(request, ad_slug):
+    ad = get_object_or_404(Ad, slug=ad_slug)
 
     # Проверка: нельзя откликаться на своё объявление
     if request.user == ad.author:
-        # Можно показать сообщение или просто редирект
-        return redirect('ad_detail', pk=ad_pk)
+        return redirect('ad_detail', slug=ad.slug)
 
     if request.method == 'POST':
         # Создаём заявку
@@ -77,14 +91,13 @@ def send_request(request, ad_pk):
             recipient=ad.author,
             status='new'
         )
-        # Можно добавить сообщение об успехе (через messages)
-        return redirect('ad_detail', pk=ad_pk)
+        return redirect('ad_detail', slug=ad.slug)
     return render(request, 'ads/send_request.html', {'ad': ad})
 
+# Просмотр заявок для объявления (только для автора)
 @login_required
-def view_requests_for_ad(request, ad_pk):
-    ad = get_object_or_404(Ad, pk=ad_pk)
-    # Проверка, что текущий пользователь — автор объявления
+def view_requests_for_ad(request, ad_slug):
+    ad = get_object_or_404(Ad, slug=ad_slug)
     if request.user != ad.author:
         return HttpResponseForbidden("У вас нет доступа к заявкам этого объявления.")
     requests = Request.objects.filter(ad=ad)

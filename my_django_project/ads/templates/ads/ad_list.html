@@ -20,10 +20,12 @@
 
     <ul class="list-group mt-3">
         {% for ad in ads %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <a href="{% url 'ad_detail' ad.pk %}">{{ ad.title }}</a> 
-                <small>by {{ ad.author.username }}</small>
-            </li>
+            {% if ad.slug %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
+                    <small class="text-muted">by {{ ad.author.username }}</small>
+                </li>
+            {% endif %}
         {% empty %}
             <li class="list-group-item">Объявлений нет.</li>
         {% endfor %}

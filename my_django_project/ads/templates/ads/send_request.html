@@ -21,7 +21,7 @@
     
 <button type='submit' class='btn btn-primary'>Отправить заявку</button>
 
-<p class='mt-3'><a href="{% url 'ad_detail' ad.pk %}" class='btn btn-secondary'>Вернуться к объявлению</a></p>
+<p class='mt-3'><a href="{% url 'ad_detail' slug=ad.slug %}" class='btn btn-secondary'>Вернуться к объявлению</a></p>
 
 </form>
 
