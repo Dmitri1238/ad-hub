@@ -5,11 +5,14 @@ from .models import Ad, Request
 from .forms import AdForm, RequestForm
 from django.utils.text import slugify
 import uuid
+from .models import Category
+
 
 # Список всех объявлений
 def ad_list(request):
     ads = Ad.objects.all()
-    return render(request, 'ads/ad_list.html', {'ads': ads})
+    categories = Category.objects.all()
+    return render(request, 'ads/ad_list.html', {'ads': ads, 'categories': categories})
 
 # Детальный просмотр объявления
 def ad_detail(request, slug):
@@ -76,8 +79,8 @@ def my_ads(request):
 
 # Отправка заявки на объявление
 @login_required
-def send_request(request, ad_slug):
-    ad = get_object_or_404(Ad, slug=ad_slug)
+def send_request(request, slug):
+    ad = get_object_or_404(Ad, slug=slug)
 
     # Проверка: нельзя откликаться на своё объявление
     if request.user == ad.author:
@@ -103,3 +106,15 @@ def view_requests_for_ad(request, ad_slug):
     requests = Request.objects.filter(ad=ad)
     return render(request, 'ads/view_requests.html', {'ad': ad, 'requests': requests})
 
+def ads_by_category(request, slug):
+    category = get_object_or_404(Category, slug=slug)
+    ads = Ad.objects.filter(category=category)
+
+    categories = Category.objects.all()  # чтобы передать в шаблон список категорий
+
+    context = {
+        'ads': ads,
+        'categories': categories,
+        'current_category': category,
+    }
+    return render(request, 'ads/ad_list.html', context)

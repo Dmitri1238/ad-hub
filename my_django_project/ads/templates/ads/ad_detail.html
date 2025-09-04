@@ -16,24 +16,30 @@
             <p>{{ ad.description }}</p>
 
             {% if user.is_authenticated and user == ad.author %}
-                <a href="{% url 'ad_edit' slug=ad.slug %}" class="btn btn-primary me-2">Редактировать</a>
+                {% if ad.slug %}
+                    <a href="{% url 'ad_edit' slug=ad.slug %}" class="btn btn-primary me-2">Редактировать</a>
 
-                <!-- Удаление -->
-                <form action="{% url 'ad_delete' slug=ad.slug %}" method="post" class="d-inline-block">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Удалить</button>
-                </form>
+                    <!-- Удаление -->
+                    <form action="{% url 'ad_delete' slug=ad.slug %}" method="post" class="d-inline-block">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Удалить</button>
+                    </form>
+                {% else %}
+                    <p class="text-warning">Редактирование и удаление недоступны: отсутствует slug объявления.</p>
+                {% endif %}
             {% endif %}
 
             {% if user.is_authenticated and user != ad.author %}
-                <!-- Отправить заявку -->
-                <form action="{% url 'send_request' ad.pk %}" method="post" class="mt-3">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success">Отправить заявку</button>
-                </form>
+                {% if ad.slug %}
+                    <form action="{% url 'send_request' slug=ad.slug %}" method="post" class="mt-3">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">Отправить заявку</button>
+                    </form>
+                {% else %}
+                    <p class="text-warning">Невозможно отправить заявку: отсутствует slug объявления.</p>
+                {% endif %}
             {% endif %}
 
-            <!-- Отдельный блок для кнопки назад, чтобы она не съезжала -->
             <div class="mt-4">
                 <a href="{% url 'ad_list' %}" class="btn btn-secondary">Назад к списку объявлений</a>
             </div>

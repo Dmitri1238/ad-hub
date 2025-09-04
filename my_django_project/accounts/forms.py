@@ -8,7 +8,6 @@ class RegisterForm(forms.Form):
         max_length=150,
         widget=forms.TextInput(attrs={'placeholder': 'Введите имя пользователя'})
     )
-
     password1 = forms.CharField(
         label='Пароль',
         widget=forms.PasswordInput(attrs={'placeholder': 'Введите пароль'})
@@ -17,6 +16,12 @@ class RegisterForm(forms.Form):
         label='Подтверждение пароля',
         widget=forms.PasswordInput(attrs={'placeholder': 'Повторите пароль'})
     )
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError("Пользователь с таким именем уже существует.")
+        return username
 
     def clean(self):
         cleaned_data = super().clean()
@@ -31,6 +36,6 @@ class RegisterForm(forms.Form):
         password = self.cleaned_data['password1']
         user = User.objects.create_user(username=username, password=password)
         return user
-
+    
 class LoginForm(AuthenticationForm):
     username = forms.CharField(label='Логин')
