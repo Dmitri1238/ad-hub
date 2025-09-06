@@ -20,13 +20,26 @@
 
     <ul class="list-group mt-3">
         {% for ad in ads %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                {% if ad.slug %}
-                    <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
-                {% else %}
-                    {{ ad.title }} <small class="text-danger">(нет ссылки: отсутствует slug)</small>
-                {% endif %}
-                <small class="text-muted">by {{ ad.author.username }}</small>
+            <li class="list-group-item">
+                <!-- Внутри каждого объявления -->
+                <div class="d-flex justify-content-between align-items-start flex-column">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        {% if ad.slug %}
+                            <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
+                        {% else %}
+                            {{ ad.title }} <small class="text-danger">(нет ссылки: отсутствует slug)</small>
+                        {% endif %}
+                        <small class="text-muted">by {{ ad.author.username }}</small>
+                    </div>
+                    <!-- Теги -->
+                    <div class="mt-1">
+                        {% for tag in ad.tags.all %}
+                            <a href="{% url 'ads_by_tag' slug=tag.slug %}" class="badge bg-secondary text-decoration-none me-1">{{ tag.name }}</a>
+                        {% empty %}
+                            <small class="text-muted">Без тегов</small>
+                        {% endfor %}
+                    </div>
+                </div>
             </li>
         {% empty %}
             <li class="list-group-item">Объявлений нет.</li>

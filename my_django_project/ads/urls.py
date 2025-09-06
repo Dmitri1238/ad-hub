@@ -13,4 +13,7 @@ urlpatterns = [
     path('<slug:slug>/requests/', views.view_requests_for_ad, name='view_requests_for_ad'),  # Просмотр откликов
 
     path('<slug:slug>/', views.ad_detail, name='ad_detail'),  # Детали объявления — последний путь
+    path('tags/', views.tag_list, name='tag_list'),
+    path('tags/add/', views.add_tag, name='add_tag'),
+    path('ads/tag/<slug:slug>/', views.ads_by_tag, name='ads_by_tag'),
 ]

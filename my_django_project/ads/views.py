@@ -6,6 +6,9 @@ from .forms import AdForm, RequestForm
 from django.utils.text import slugify
 import uuid
 from .models import Category
+from .forms import TagForm
+from django.contrib.auth.decorators import login_required
+from .models import Tag
 
 
 # Список всех объявлений
@@ -116,5 +119,34 @@ def ads_by_category(request, slug):
         'ads': ads,
         'categories': categories,
         'current_category': category,
+    }
+    return render(request, 'ads/ad_list.html', context)
+
+
+
+@login_required
+def add_tag(request):
+    if request.method == 'POST':
+        form = TagForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('ad_list')  # или куда хотите после создания
+    else:
+        form = TagForm()
+    return render(request, 'ads/add_tag.html', {'form': form})
+
+@login_required
+def tag_list(request):
+    tags = Tag.objects.all()
+    return render(request, 'ads/tag_list.html', {'tags': tags})
+
+def ads_by_tag(request, slug):
+    tag = get_object_or_404(Tag, slug=slug)
+    ads = Ad.objects.filter(tags=tag)
+    categories = Category.objects.all()
+    context = {
+        'ads': ads,
+        'categories': categories,
+        'current_tag': tag,
     }
     return render(request, 'ads/ad_list.html', context)
