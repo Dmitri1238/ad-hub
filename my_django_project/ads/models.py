@@ -34,6 +34,8 @@ class Tag(models.Model):
         return self.name
 
 class Ad(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     tags = models.ManyToManyField('Tag', blank=True, related_name='ads')
     title = models.CharField("Заголовок", max_length=255)
     description = models.TextField("Описание")

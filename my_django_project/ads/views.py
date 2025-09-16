@@ -15,7 +15,11 @@ from .models import Tag
 def ad_list(request):
     ads = Ad.objects.all()
     categories = Category.objects.all()
-    return render(request, 'ads/ad_list.html', {'ads': ads, 'categories': categories})
+    context = {
+        'ads': ads,
+        'categories': categories,
+    }
+    return render(request, 'ads/ad_list.html', context)
 
 # Детальный просмотр объявления
 def ad_detail(request, slug):

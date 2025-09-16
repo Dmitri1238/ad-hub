@@ -1,4 +1,7 @@
 <!-- ads/templates/ads/ad_list.html -->
+{% load my_filters %}
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -30,6 +33,10 @@
                             {{ ad.title }} <small class="text-danger">(нет ссылки: отсутствует slug)</small>
                         {% endif %}
                         <small class="text-muted">by {{ ad.author.username }}</small>
+                    </div>
+                    <!-- Дата публикации -->
+                    <div class="mt-1">
+                        <small class="text-muted">Опубликовано: {{ ad.created_at|local_time:"%d.%m.%Y %H:%M" }}</small>
                     </div>
                     <!-- Теги -->
                     <div class="mt-1">
