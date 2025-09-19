@@ -9,21 +9,41 @@ from .models import Category
 from .forms import TagForm
 from django.contrib.auth.decorators import login_required
 from .models import Tag
+from django.core.paginator import Paginator
 
 
-# Список всех объявлений
-def ad_list(request):
-    ads = Ad.objects.all()
+def main_page(request):
+    ads_list = Ad.objects.all().order_by('-created_at')  # или ваш фильтр
+    paginator = Paginator(ads_list, 10)  # 10 объявлений на страницу
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     categories = Category.objects.all()
     context = {
-        'ads': ads,
+        'ads': page_obj.object_list,
+        'page_obj': page_obj,
         'categories': categories,
+    }
+    return render(request, 'ads/templates/ads/ad_list.html', context)
+# Список всех объявлений
+def ad_list(request):
+    ads = Ad.objects.all().order_by('-created_at')  # или другие фильтры
+    paginator = Paginator(ads, 10)  # показывает по 10 объявлений на страницу
+    page_number = request.GET.get('page')  # получаем номер страницы из URL
+    page_obj = paginator.get_page(page_number)
+    categories = Category.objects.all()  # чтобы оставить список категорий (по вашему шаблону)
+
+    context = {
+        'ads': page_obj.object_list,  # объявления для текущей страницы
+        'categories': categories,
+        'page_obj': page_obj,        # объект страницы для навигации
     }
     return render(request, 'ads/ad_list.html', context)
 
 # Детальный просмотр объявления
 def ad_detail(request, slug):
     ad = get_object_or_404(Ad, slug=slug)
+    ad.views = ad.views + 1
+    ad.save(update_fields=['views'])
     return render(request, 'ads/ad_detail.html', {'ad': ad})
 
 # Создание объявления (только для авторизованных)
@@ -76,7 +96,8 @@ def ad_delete(request, slug):
     if request.method == 'POST':
         ad.delete()
         return redirect('ad_list')
-    return render(request, 'ads/ad_confirm_delete.html', {'ad': ad})
+    return render(request, 'ads/ad_confirm_delete.html', {'ad': ad}) 
+
 
 # Мои объявления
 @login_required

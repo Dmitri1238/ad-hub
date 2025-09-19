@@ -34,6 +34,7 @@ class Tag(models.Model):
         return self.name
 
 class Ad(models.Model):
+    views = models.PositiveIntegerField(default=0)  # счетчик просмотров
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     tags = models.ManyToManyField('Tag', blank=True, related_name='ads')
