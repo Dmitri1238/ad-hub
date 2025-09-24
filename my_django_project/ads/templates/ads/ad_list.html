@@ -21,10 +21,17 @@
         <a href="{% url 'login' %}" class="btn btn-primary mb-2">Войти</a>
     {% endif %}
 
+    <!-- Форма поиска -->
+    <form method="get" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Поиск объявлений" value="{{ request.GET.q|default_if_none:'' }}">
+            <button type="submit" class="btn btn-outline-primary">Поиск</button>
+        </div>
+    </form>
+
     <ul class="list-group mt-3">
         {% for ad in ads %}
             <li class="list-group-item">
-                <!-- Внутри каждого объявления -->
                 <div class="d-flex justify-content-between align-items-start flex-column">
                     <div class="w-100 d-flex justify-content-between align-items-center">
                         {% if ad.slug %}
@@ -34,11 +41,9 @@
                         {% endif %}
                         <small class="text-muted">by {{ ad.author.username }}</small>
                     </div>
-                    <!-- Дата публикации -->
                     <div class="mt-1">
                         <small class="text-muted">Опубликовано: {{ ad.created_at|local_time:"%d.%m.%Y %H:%M" }}</small>
                     </div>
-                    <!-- Теги -->
                     <div class="mt-1">
                         {% for tag in ad.tags.all %}
                             <a href="{% url 'ads_by_tag' slug=tag.slug %}" class="badge bg-secondary text-decoration-none me-1">{{ tag.name }}</a>
@@ -58,9 +63,21 @@
     <div class="mt-4 d-flex justify-content-center">
         <nav aria-label="Страницы объявлений">
             <ul class="pagination">
+                {% comment %}
+                    Для сохранения других GET-параметров кроме page,
+                    в view нужно передать get_params:
+                    Например:
+                    from django.http import QueryDict
+                    q = request.GET.copy()
+                    if 'page' in q:
+                        q.pop('page')
+                    get_params = q.urlencode()
+                    context['get_params'] = get_params
+                {% endcomment %}
+
                 {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
+                    <a class="page-link" href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
                         &laquo; Предыдущая
                     </a>
                 </li>
@@ -77,14 +94,14 @@
                         </li>
                     {% else %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            <a class="page-link" href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ num }}">{{ num }}</a>
                         </li>
                     {% endif %}
                 {% endfor %}
 
                 {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Следующая">
+                    <a class="page-link" href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Следующая">
                         Следующая &raquo;
                     </a>
                 </li>

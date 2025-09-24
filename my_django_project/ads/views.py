@@ -10,6 +10,7 @@ from .forms import TagForm
 from django.contrib.auth.decorators import login_required
 from .models import Tag
 from django.core.paginator import Paginator
+from django.db.models import Q
 
 
 def main_page(request):
@@ -26,16 +27,33 @@ def main_page(request):
     return render(request, 'ads/templates/ads/ad_list.html', context)
 # Список всех объявлений
 def ad_list(request):
-    ads = Ad.objects.all().order_by('-created_at')  # или другие фильтры
-    paginator = Paginator(ads, 10)  # показывает по 10 объявлений на страницу
-    page_number = request.GET.get('page')  # получаем номер страницы из URL
+    query = request.GET.get('q', '')  # Получаем строку поиска из GET
+    ads = Ad.objects.all()
+
+    if query:
+        # Поиск по названию и описанию (пример)
+        ads = ads.filter(
+            Q(title__icontains=query) |
+            Q(description__icontains=query)
+        )
+
+    ads = ads.order_by('-created_at')
+    paginator = Paginator(ads, 10)
+    page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    categories = Category.objects.all()  # чтобы оставить список категорий (по вашему шаблону)
+    categories = Category.objects.all()
+
+    # Формируем строку GET-параметров без параметра page для пагинации
+    get_params = request.GET.copy()
+    if 'page' in get_params:
+        get_params.pop('page')
 
     context = {
-        'ads': page_obj.object_list,  # объявления для текущей страницы
+        'ads': page_obj.object_list,
         'categories': categories,
-        'page_obj': page_obj,        # объект страницы для навигации
+        'page_obj': page_obj,
+        'search_query': query,
+        'get_params': get_params.urlencode(),  # это мы будем добавлять в ссылки пагинации
     }
     return render(request, 'ads/ad_list.html', context)
 
