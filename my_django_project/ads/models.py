@@ -34,6 +34,7 @@ class Tag(models.Model):
         return self.name
 
 class Ad(models.Model):
+    bookmarks = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='bookmarked_ads', blank=True)
     views = models.PositiveIntegerField(default=0)  # счетчик просмотров
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

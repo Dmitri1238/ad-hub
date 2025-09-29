@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+import ads.views as ads_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -14,5 +15,5 @@ urlpatterns = [
     path('ads/', include('ads.urls')),
     
     # Отклики
-    path('requests/', include('ads.urls')),
+    path('requests/', ads_views.requests_list, name='requests_list'),
 ]

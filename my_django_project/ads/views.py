@@ -2,16 +2,35 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from .models import Ad, Request
+from django.views.decorators.http import require_POST
 from .forms import AdForm, RequestForm
 from django.utils.text import slugify
 import uuid
 from .models import Category
 from .forms import TagForm
-from django.contrib.auth.decorators import login_required
 from .models import Tag
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import JsonResponse
+from django.http import HttpResponse
 
+def requests_list(request):
+    return HttpResponse("Это страница запросов.")
+
+@login_required
+@require_POST
+def toggle_bookmark(request):
+    ad_slug = request.POST.get('ad_slug')
+    ad = get_object_or_404(Ad, slug=ad_slug)
+
+    if request.user in ad.bookmarks.all():
+        ad.bookmarks.remove(request.user)
+        status = 'removed'
+    else:
+        ad.bookmarks.add(request.user)
+        status = 'added'
+
+    return JsonResponse({'status': status})
 
 def main_page(request):
     ads_list = Ad.objects.all().order_by('-created_at')  # или ваш фильтр

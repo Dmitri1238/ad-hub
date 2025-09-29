@@ -9,10 +9,11 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('/requests/')  # Перенаправление на /requests/
+            return redirect('/ads/')  # Перенаправление после регистрации
     else:
         form = RegisterForm()
     return render(request, 'accounts/register.html', {'form': form})
 
 def index(request):
-    return HttpResponse("Это страница аккаунтов")
+    # Просто отображение страницы с шаблоном
+    return render(request, 'accounts/index.html')
