@@ -1,0 +1,40 @@
+{# ads/templates/ads/_ad_items.html #}
+{% load my_filters %}
+{% for ad in ads %}
+    <li class="list-group-item" data-ad-id="{{ ad.id }}" data-ad-slug="{{ ad.slug }}">
+        <div class="d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                {% if ad.slug %}
+                    <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
+                {% else %}
+                    {{ ad.title }} <small class="text-danger">(нет ссылки: отсутствует slug)</small>
+                {% endif %}
+                <small class="text-muted">by {{ ad.author.username }}</small>
+            </div>
+            <div class="mb-1">
+                <small class="text-muted">Опубликовано: {{ ad.created_at|local_time:"%d.%m.%Y %H:%M" }}</small>
+            </div>
+            <div class="mb-2">
+                {% if ad.tags.all %}
+                    {% for tag in ad.tags.all %}
+                        <a href="{% url 'ads_by_tag' slug=tag.slug %}" class="badge bg-secondary text-decoration-none me-1">{{ tag.name }}</a>
+                    {% endfor %}
+                {% else %}
+                    <small class="text-muted">Без тегов</small>
+                {% endif %}
+            </div>
+            {% if user.is_authenticated %}
+            <!-- Кнопка избранного -->
+            <div>
+                {% if ad.id in user.bookmarked_ads_ids %}
+                    <button class="btn btn-sm btn-warning toggle-bookmark">Убрать из избранного</button>
+                {% else %}
+                    <button class="btn btn-sm btn-outline-primary toggle-bookmark">В избранное</button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </li>
+{% empty %}
+    <li class="list-group-item">Объявлений нет.</li>
+{% endfor %}

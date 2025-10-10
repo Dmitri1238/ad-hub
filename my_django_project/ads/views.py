@@ -53,7 +53,7 @@ def main_page(request):
 
 
 def ad_list(request):
-    query = request.GET.get('q', '')
+    query = request.GET.get('q', '')  # поисковый запрос
     ads = Ad.objects.all()
 
     if query:
@@ -66,19 +66,24 @@ def ad_list(request):
     paginator = Paginator(ads, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    categories = Category.objects.all()
 
-    # GET-параметры без "page" для пагинации
+    # Создаем копию GET-параметров, исключая 'page' для построения get-запросов
     get_params = request.GET.copy()
     get_params.pop('page', None)
 
     context = {
         'ads': page_obj.object_list,
-        'categories': categories,
+        'categories': Category.objects.all(),
         'page_obj': page_obj,
         'search_query': query,
         'get_params': get_params.urlencode(),
     }
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # возвращаем только HTML для вставки
+        return render(request, 'ads/_ad_items.html', context)
+
+    # обычный ответ
     return render(request, 'ads/ad_list.html', context)
 
 

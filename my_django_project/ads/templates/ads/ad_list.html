@@ -31,95 +31,16 @@
     </form>
 
     <!-- Список объявлений -->
-    <ul class="list-group">
+    <ul class="list-group" id="ad-list">
         {% for ad in ads %}
-            <li class="list-group-item" data-ad-id="{{ ad.id }}" data-ad-slug="{{ ad.slug }}">
-                <div class="d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        {% if ad.slug %}
-                            <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
-                        {% else %}
-                            {{ ad.title }} <small class="text-danger">(нет ссылки: отсутствует slug)</small>
-                        {% endif %}
-                        <small class="text-muted">by {{ ad.author.username }}</small>
-                    </div>
-                    <div class="mb-1">
-                        <small class="text-muted">Опубликовано: {{ ad.created_at|local_time:"%d.%m.%Y %H:%M" }}</small>
-                    </div>
-                    <div class="mb-2">
-                        {% if ad.tags.all %}
-                            {% for tag in ad.tags.all %}
-                                <a href="{% url 'ads_by_tag' slug=tag.slug %}" class="badge bg-secondary text-decoration-none me-1">{{ tag.name }}</a>
-                            {% endfor %}
-                        {% else %}
-                            <small class="text-muted">Без тегов</small>
-                        {% endif %}
-                    </div>
-                    {% if user.is_authenticated %}
-                    <!-- Кнопка избранного -->
-                    <div>
-                        {% if ad.id in user.bookmarked_ads_ids %}
-                            <button class="btn btn-sm btn-warning toggle-bookmark">Убрать из избранного</button>
-                        {% else %}
-                            <button class="btn btn-sm btn-outline-primary toggle-bookmark">В избранное</button>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
-            </li>
+            {% include 'ads/_ad_items.html' %}
         {% empty %}
             <li class="list-group-item">Объявлений нет.</li>
         {% endfor %}
     </ul>
 
     <!-- Пагинация -->
-    {% if page_obj.paginator.num_pages > 1 %}
-    <nav class="mt-4 d-flex justify-content-center" aria-label="Страницы объявлений">
-        <ul class="pagination">
 
-            {% comment %}
-                Для сохранения других GET-параметров кроме page, 
-                в view нужно передать get_params как строку.
-            {% endcomment %}
-
-            {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
-                        &laquo; Предыдущая
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&laquo; Предыдущая</span>
-                </li>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-                {% if num == page_obj.number %}
-                    <li class="page-item active" aria-current="page">
-                        <span class="page-link">{{ num }}</span>
-                    </li>
-                {% else %}
-                    <li class="page-item">
-                        <a class="page-link" href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ num }}">{{ num }}</a>
-                    </li>
-                {% endif %}
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?{% if get_params %}{{ get_params }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Следующая">
-                        Следующая &raquo;
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Следующая &raquo;</span>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
 
     <!-- Категории в нижней части -->
     <div class="mt-5">
@@ -230,4 +151,143 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 {% endif %}
 </body>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Передача переменных из Django-шаблона в JavaScript
+    const initialPage = {{ page_obj.number|default:"1" }};
+    const totalPagesCount = {{ page_obj.paginator.num_pages|default:"1" }};
+
+    // Инициализация текущей страницы и общего количества страниц
+    let page = initialPage;
+    const totalPages = totalPagesCount;
+
+    let loading = false; // чтобы избежать параллельных запросов
+
+    const adList = document.getElementById('ad-list');
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrfToken = getCookie('csrftoken');
+
+    // Функция для повторной инициализации кнопок "Избранное"
+    function initBookmarkButtons(root = document) {
+        root.querySelectorAll('.toggle-bookmark').forEach(button => {
+            button.removeEventListener('click', bookmarkHandler);
+            button.addEventListener('click', bookmarkHandler);
+        });
+    }
+
+    function bookmarkHandler(e) {
+        const button = e.currentTarget;
+        button.disabled = true;
+
+        const adItem = button.closest('li[data-ad-slug]');
+        const adSlug = adItem ? adItem.getAttribute('data-ad-slug') : null;
+        if (!adSlug) {
+            alert('Ошибка: у объявления отсутствует slug.');
+            button.disabled = false;
+            return;
+        }
+
+        fetch('/ads/toggle-bookmark/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ 'ad_slug': adSlug })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка сети');
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'added') {
+                button.textContent = 'Убрать из избранного';
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-warning');
+            } else if (data.status === 'removed') {
+                button.textContent = 'В избранное';
+                button.classList.remove('btn-warning');
+                button.classList.add('btn-outline-primary');
+            } else if (data.error) {
+                alert(data.error);
+            }
+        })
+        .catch(() => {
+            alert('Ошибка при добавлении в избранное.');
+        })
+        .finally(() => {
+            button.disabled = false;
+        });
+    }
+
+    initBookmarkButtons();
+
+    // Загрузка следующей страницы
+    function loadNextPage() {
+        if (loading || page >= totalPages) return;
+
+        loading = true;
+        page += 1;
+
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', page);
+
+        fetch(window.location.pathname + '?' + params.toString(), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка загрузки');
+            return response.text();
+        })
+        .then(html => {
+            // Возвращается HTML с <li> элементами
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+
+            const newItems = tempDiv.querySelectorAll('li.list-group-item');
+
+            if (newItems.length === 0) {
+                // Больше объявлений нет — останавливаем
+                page = totalPages;
+            } else {
+                newItems.forEach(item => adList.appendChild(item));
+                // Инициализируем кнопки новых элементов
+                initBookmarkButtons(adList);
+            }
+            loading = false;
+        })
+        .catch(err => {
+            console.error(err);
+            loading = false;
+        });
+    }
+
+    // Обработчик прокрутки
+    window.addEventListener('scroll', () => {
+        if (loading || page >= totalPages) return;
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const threshold = document.body.offsetHeight - 200;
+
+        if (scrollPosition >= threshold) {
+            loadNextPage();
+        }
+    });
+});
+</script>
 </html>
