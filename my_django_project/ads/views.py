@@ -8,33 +8,37 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.contrib import messages
 from django.utils.text import slugify
+from ads.models import Ad, FavoriteAd
 
 import uuid
 
 from .models import Ad, Request, Category, Tag
 from .forms import AdForm, RequestForm, TagForm
+import json
 
 
 def requests_list(request):
     # Заглушка, можно потом дополнить
     return HttpResponse("Это страница запросов.")
 
-
 @login_required
 @require_POST
-def toggle_bookmark(request):
-    ad_slug = request.POST.get('ad_slug')
-    ad = get_object_or_404(Ad, slug=ad_slug)
+def toggle_bookmark(request, slug):
+    try:
+        ad = Ad.objects.get(slug=slug)
+    except Ad.DoesNotExist:
+        return JsonResponse({'error': 'Объявление не найдено.'}, status=404)
 
-    if request.user in ad.bookmarks.all():
-        ad.bookmarks.remove(request.user)
-        status = 'removed'
-    else:
-        ad.bookmarks.add(request.user)
+    favorite, created = FavoriteAd.objects.get_or_create(user=request.user, ad=ad)
+    if created:
         status = 'added'
+        is_favorited = True
+    else:
+        favorite.delete()
+        status = 'removed'
+        is_favorited = False
 
-    return JsonResponse({'status': status})
-
+    return JsonResponse({'status': status, 'is_favorited': is_favorited})
 
 def main_page(request):
     ads_list = Ad.objects.all().order_by('-created_at')
@@ -44,12 +48,19 @@ def main_page(request):
 
     categories = Category.objects.all()
 
+    # Получение списка избранных объявлений текущего пользователя
+    if request.user.is_authenticated:
+        fav_ids = FavoriteAd.objects.filter(user=request.user).values_list('ad_id', flat=True)
+    else:
+        fav_ids = []
+
     context = {
         'ads': page_obj.object_list,
         'page_obj': page_obj,
         'categories': categories,
+        'favorite_ids': list(fav_ids),  # передача списка ID в шаблон
     }
-    return render(request, 'ads/templates/ads/ad_list.html', context)
+    return render(request, 'ads/ad_list.html', context)
 
 
 def ad_list(request):

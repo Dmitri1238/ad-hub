@@ -3,6 +3,15 @@ from django.conf import settings
 from django.utils.text import slugify
 from django.urls import reverse
 
+
+class FavoriteAd(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorite_ads')
+    ad = models.ForeignKey('Ad', on_delete=models.CASCADE, related_name='favorited_by')
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'ad')
+
 class Category(models.Model):
     name = models.CharField("Название категории", max_length=100)
     slug = models.SlugField(max_length=100, unique=True)
@@ -36,7 +45,6 @@ class Tag(models.Model):
 class Ad(models.Model):
     bookmarks = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='bookmarked_ads', blank=True)
     views = models.PositiveIntegerField(default=0)  # счетчик просмотров
-    created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     tags = models.ManyToManyField('Tag', blank=True, related_name='ads')
     title = models.CharField("Заголовок", max_length=255)

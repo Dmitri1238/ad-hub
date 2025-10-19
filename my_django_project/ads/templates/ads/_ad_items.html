@@ -1,40 +1,106 @@
-{# ads/templates/ads/_ad_items.html #}
 {% load my_filters %}
+{% load static %}
+
 {% for ad in ads %}
-    <li class="list-group-item" data-ad-id="{{ ad.id }}" data-ad-slug="{{ ad.slug }}">
-        <div class="d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-                {% if ad.slug %}
-                    <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
-                {% else %}
-                    {{ ad.title }} <small class="text-danger">(нет ссылки: отсутствует slug)</small>
-                {% endif %}
-                <small class="text-muted">by {{ ad.author.username }}</small>
-            </div>
-            <div class="mb-1">
-                <small class="text-muted">Опубликовано: {{ ad.created_at|local_time:"%d.%m.%Y %H:%M" }}</small>
-            </div>
-            <div class="mb-2">
-                {% if ad.tags.all %}
-                    {% for tag in ad.tags.all %}
-                        <a href="{% url 'ads_by_tag' slug=tag.slug %}" class="badge bg-secondary text-decoration-none me-1">{{ tag.name }}</a>
-                    {% endfor %}
-                {% else %}
-                    <small class="text-muted">Без тегов</small>
-                {% endif %}
-            </div>
-            {% if user.is_authenticated %}
-            <!-- Кнопка избранного -->
-            <div>
-                {% if ad.id in user.bookmarked_ads_ids %}
-                    <button class="btn btn-sm btn-warning toggle-bookmark">Убрать из избранного</button>
-                {% else %}
-                    <button class="btn btn-sm btn-outline-primary toggle-bookmark">В избранное</button>
-                {% endif %}
-            </div>
-            {% endif %}
-        </div>
-    </li>
+<li class="list-group-item" data-ad-id="{{ ad.id }}" data-ad-slug="{{ ad.slug }}">
+  <div class="d-flex flex-column">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      {% if ad.slug %}
+        <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
+      {% else %}
+        {{ ad.title }} <small class="text-danger">(нет ссылки: отсутствует slug)</small>
+      {% endif %}
+      <small class="text-muted">by {{ ad.author.username }}</small>
+    </div>
+    <div class="mb-1">
+      <small class="text-muted">Опубликовано: {{ ad.created_at|local_time:"%d.%m.%Y %H:%M" }}</small>
+    </div>
+    <div class="mb-2">
+      {% if ad.tags.all|length > 0 %}
+        {% for tag in ad.tags.all %}
+          <a href="{% url 'ads_by_tag' slug=tag.slug %}" class="badge bg-secondary text-decoration-none me-1">{{ tag.name }}</a>
+        {% endfor %}
+      {% else %}
+        <small class="text-muted">Без тегов</small>
+      {% endif %}
+    </div>
+    {% if user.is_authenticated %}
+    <!-- Кнопка избранного -->
+    <div>
+      <!-- Передача URL через data-атрибут -->
+      <button class="btn btn-sm {% if ad.id in user_favorites %}btn-warning{% else %}btn-outline-primary{% endif %} toggle-bookmark"
+        data-ad-id="{{ ad.id }}"
+        data-ad-slug="{{ ad.slug }}"
+        data-ajax-url="{% url 'toggle-bookmark-slug' slug=ad.slug %}">
+        {% if ad.id in user_favorites %}Убрать из избранного{% else %}В избранное{% endif %}
+      </button>
+    </div>
+    {% endif %}
+  </div>
+</li>
 {% empty %}
-    <li class="list-group-item">Объявлений нет.</li>
+<li class="list-group-item">Объявлений нет.</li>
 {% endfor %}
+
+{% block custom_js %}
+<script>
+// Обработка клика по кнопке "Добавить/Удалить из избранного"
+document.querySelectorAll('.toggle-bookmark').forEach(btn => {
+    btn.addEventListener('click', async function (e) {
+        e.preventDefault();
+        const adSlug = btn.dataset.adSlug;
+        const url = btn.dataset.ajaxUrl; // Получение URL из data-атрибута
+        if (!adSlug || !url) {
+            console.error('Не найден slug или url объявления');
+            return;
+        }
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({ ad_slug: adSlug }),
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error('Ошибка сервера:', errText);
+                alert('Ошибка при обновлении в избранное.');
+                return;
+            }
+            const data = await response.json();
+            // Обновление текста кнопки в зависимости от состояния
+            if (data.is_favorited) {
+                btn.textContent = 'Убрать из избранного';
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-warning');
+            } else {
+                btn.textContent = 'В избранное';
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-outline-primary');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Произошла ошибка при обновлении избранного.');
+        }
+    });
+});
+
+// Функция получения CSRF-токена из cookie
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i=0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.startsWith(name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+{% endblock %}

@@ -7,8 +7,9 @@ urlpatterns = [
     path('my/', views.my_ads, name='my_ads'),
     path('category/<slug:slug>/', views.ads_by_category, name='ads_by_category'),
     
-    path('toggle-bookmark/', views.toggle_bookmark, name='toggle-bookmark'),
 
+    path('<slug:slug>/toggle_bookmark/', views.toggle_bookmark, name='toggle-bookmark-slug'),  # Для конкретного объявления
+    
     path('<slug:slug>/edit/', views.ad_edit, name='ad_edit'),
     path('<slug:slug>/delete/', views.ad_delete, name='ad_delete'),
     path('<slug:slug>/apply/', views.send_request, name='send_request'),
