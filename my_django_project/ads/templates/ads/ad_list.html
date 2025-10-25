@@ -165,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const adList = document.getElementById('ad-list');
 
+    // Функция получения CSRF-токена
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -179,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return cookieValue;
     }
+
     const csrfToken = getCookie('csrftoken');
 
     // Функция для повторной инициализации кнопок "Избранное"
@@ -288,7 +290,40 @@ document.addEventListener('DOMContentLoaded', () => {
             loadNextPage();
         }
     });
-});
 
+    // Обработка форм отзывов
+    document.querySelectorAll('form[id^="review-form-"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const slug = form.dataset.adsSlug;
+            const formData = new FormData(form);
+
+            fetch(`/ads/${slug}/add_review/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Обновляем блок отзывов
+                    const reviewsContainer = document.querySelector(`#reviews-container-${slug}`);
+                    if (reviewsContainer) {
+                        reviewsContainer.innerHTML = data.reviews_html;  // Предполагается, что сервер возвращает готовый HTML
+                    }
+                    form.reset(); // очистка формы
+                } else {
+                    alert('Ошибка при отправке отзыва');
+                }
+            })
+            .catch(() => {
+                alert('Произошла ошибка при отправке.');
+            });
+        });
+    });
+});
 </script>
 </html>

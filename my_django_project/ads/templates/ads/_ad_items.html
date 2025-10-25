@@ -1,9 +1,11 @@
+<!-- ads/templates/ads/_ad_items.html -->
 {% load my_filters %}
 {% load static %}
 
 {% for ad in ads %}
 <li class="list-group-item" data-ad-id="{{ ad.id }}" data-ad-slug="{{ ad.slug }}">
   <div class="d-flex flex-column">
+    <!-- Основная информация об объявлении -->
     <div class="d-flex justify-content-between align-items-center mb-1">
       {% if ad.slug %}
         <a href="{% url 'ad_detail' slug=ad.slug %}">{{ ad.title }}</a>
@@ -27,7 +29,6 @@
     {% if user.is_authenticated %}
     <!-- Кнопка избранного -->
     <div>
-      <!-- Передача URL через data-атрибут -->
       <button class="btn btn-sm {% if ad.id in user_favorites %}btn-warning{% else %}btn-outline-primary{% endif %} toggle-bookmark"
         data-ad-id="{{ ad.id }}"
         data-ad-slug="{{ ad.slug }}"
@@ -37,6 +38,19 @@
     </div>
     {% endif %}
   </div>
+
+  <!-- Блок отзывов -->
+  <div id="reviews-container-{{ ad.slug }}" class="mt-3">
+    {% include 'ads/reviews_list.html' with reviews=ad.reviews.all %}
+  </div>
+
+  <!-- Форма отправки отзыва -->
+  <form id="review-form-{{ ad.slug }}" data-ads-slug="{{ ad.slug }}" class="review-form mt-2">
+    {% csrf_token %}
+    {{ review_form.as_p }}
+    <button type="submit" class="btn btn-sm btn-primary">Отправить отзыв</button>
+    <div class="review-error text-danger mt-2" style="display:none;"></div>
+  </form>
 </li>
 {% empty %}
 <li class="list-group-item">Объявлений нет.</li>
@@ -44,16 +58,22 @@
 
 {% block custom_js %}
 <script>
-// Обработка клика по кнопке "Добавить/Удалить из избранного"
+// =================== Обработка кнопки "Избранное" ===================
 document.querySelectorAll('.toggle-bookmark').forEach(btn => {
     btn.addEventListener('click', async function (e) {
         e.preventDefault();
+        if (btn.disabled) return; // уже отключена
+        btn.disabled = true;
+
         const adSlug = btn.dataset.adSlug;
-        const url = btn.dataset.ajaxUrl; // Получение URL из data-атрибута
+        const url = btn.dataset.ajaxUrl;  // здесь читается правильно сформированный URL
+
         if (!adSlug || !url) {
             console.error('Не найден slug или url объявления');
+            btn.disabled = false;
             return;
         }
+
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -67,22 +87,24 @@ document.querySelectorAll('.toggle-bookmark').forEach(btn => {
                 const errText = await response.text();
                 console.error('Ошибка сервера:', errText);
                 alert('Ошибка при обновлении в избранное.');
-                return;
-            }
-            const data = await response.json();
-            // Обновление текста кнопки в зависимости от состояния
-            if (data.is_favorited) {
-                btn.textContent = 'Убрать из избранного';
-                btn.classList.remove('btn-outline-primary');
-                btn.classList.add('btn-warning');
             } else {
-                btn.textContent = 'В избранное';
-                btn.classList.remove('btn-warning');
-                btn.classList.add('btn-outline-primary');
+                const data = await response.json();
+                // Обновление состояния кнопки
+                if (data.is_favorited) {
+                    btn.textContent = 'Убрать из избранного';
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-warning');
+                } else {
+                    btn.textContent = 'В избранное';
+                    btn.classList.remove('btn-warning');
+                    btn.classList.add('btn-outline-primary');
+                }
             }
         } catch (error) {
             console.error('Ошибка:', error);
             alert('Произошла ошибка при обновлении избранного.');
+        } finally {
+            btn.disabled = false;
         }
     });
 });
@@ -102,5 +124,66 @@ function getCookie(name) {
   }
   return cookieValue;
 }
+
+// =================== Обработка отправки отзывов ===================
+document.querySelectorAll('form[id^="review-form-"]').forEach(form => {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const slug = form.dataset.adsSlug;
+        const textarea = form.querySelector('textarea[name="text"]');
+
+        // Проверка обязательного поля
+        if (!textarea || !textarea.value.trim()) {
+            const errorDiv = form.querySelector('.review-error');
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Пожалуйста, заполните поле текста отзыва.';
+            }
+            return;
+        }
+
+        const formData = new FormData(form);
+        const url = `/ads/${slug}/add_review/`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: formData,
+            });
+            if (!response.ok) {
+                alert('Ошибка при отправке. Статус: ' + response.status);
+                return;
+            }
+            const data = await response.json();
+
+            if (data.success) {
+                // Обновляем блок отзывов
+                const reviewsContainer = document.querySelector(`#reviews-container-${slug}`);
+                if (reviewsContainer) {
+                    reviewsContainer.innerHTML = data.reviews_html;
+                }
+                form.reset();
+                // Скрываем сообщение об ошибке
+                const errorDiv = form.querySelector('.review-error');
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                    errorDiv.textContent = '';
+                }
+            } else {
+                const errorDiv = form.querySelector('.review-error');
+                if (errorDiv) {
+                    errorDiv.style.display = 'block';
+                    errorDiv.textContent = data.errors || 'Произошла ошибка.';
+                }
+            }
+        } catch (err) {
+            console.error('Ошибка fetch:', err);
+            alert('Произошла ошибка при отправке отзыва.');
+        }
+    });
+});
 </script>
 {% endblock %}

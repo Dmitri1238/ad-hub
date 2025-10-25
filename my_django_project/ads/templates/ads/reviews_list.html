@@ -1,0 +1,15 @@
+<!-- ads/templates/ads/reviews_list.html -->
+{% load my_filters %}
+{% for review in reviews %}
+<div class="review-item mb-2 p-2 border rounded">
+    <div class="d-flex justify-content-between">
+        <strong>{{ review.author.username }}</strong>
+        <small class="text-muted">{{ review.created_at|local_time:"%d.%m.%Y %H:%M" }}</small>
+    </div>
+    <div>
+        <p>{{ review.text }}</p> <!-- исправлено на review.text -->
+    </div>
+</div>
+{% empty %}
+<p>Нет отзывов для этого объявления.</p>
+{% endfor %}

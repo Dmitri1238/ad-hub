@@ -15,7 +15,28 @@ import uuid
 from .models import Ad, Request, Category, Tag
 from .forms import AdForm, RequestForm, TagForm
 import json
+from .forms import ReviewForm
+from .models import Review, Ad
+from django.template.loader import render_to_string
+import logging
 
+
+@login_required
+@require_POST
+def add_review(request, slug):
+    ad = get_object_or_404(Ad, slug=slug)
+    form = ReviewForm(request.POST)
+    if form.is_valid():
+        review = form.save(commit=False)
+        review.ad = ad
+        review.author = request.user
+        review.save()
+        # генерируем обновлённый список отзывов
+        reviews_html = render_to_string('ads/reviews_list.html', {'reviews': ad.reviews.all()}, request=request)
+        return JsonResponse({'success': True, 'reviews_html': reviews_html})
+    else:
+        errors = form.errors.as_json()
+        return JsonResponse({'success': False, 'errors': errors})
 
 def requests_list(request):
     # Заглушка, можно потом дополнить
@@ -29,16 +50,23 @@ def toggle_bookmark(request, slug):
     except Ad.DoesNotExist:
         return JsonResponse({'error': 'Объявление не найдено.'}, status=404)
 
-    favorite, created = FavoriteAd.objects.get_or_create(user=request.user, ad=ad)
+    # Проверка, что пользователь авторизован — уже гарантируется декораторами
+    user = request.user
+
+    favorite, created = FavoriteAd.objects.get_or_create(user=user, ad=ad)
+
     if created:
-        status = 'added'
         is_favorited = True
+        status = 'added'
     else:
         favorite.delete()
-        status = 'removed'
         is_favorited = False
+        status = 'removed'
 
-    return JsonResponse({'status': status, 'is_favorited': is_favorited})
+    return JsonResponse({
+        'status': status,
+        'is_favorited': is_favorited,
+    })
 
 def main_page(request):
     ads_list = Ad.objects.all().order_by('-created_at')

@@ -1,6 +1,15 @@
 from django import forms
 from .models import Ad, Category
 from .models import Tag
+from .models import Review
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Ваш отзыв...'})
+        }
 
 class AdForm(forms.ModelForm):
     category = forms.ModelChoiceField(

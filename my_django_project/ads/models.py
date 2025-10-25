@@ -3,6 +3,14 @@ from django.conf import settings
 from django.utils.text import slugify
 from django.urls import reverse
 
+class Review(models.Model):
+    ad = models.ForeignKey('Ad', on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Review by {self.user} on {self.ad}'
 
 class FavoriteAd(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorite_ads')
