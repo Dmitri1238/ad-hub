@@ -1,0 +1,16 @@
+/* Тема 3: минимализм, светлые пастельные */
+body {
+    background-color: #fafafa; /* очень светлый */
+    color: #333;
+    font-family: Helvetica, sans-serif;
+}
+
+.header {
+    background-color: #ddd;
+    color: #222;
+    padding: 10px;
+}
+
+a {
+    color: #666;
+}

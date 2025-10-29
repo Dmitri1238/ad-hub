@@ -1,0 +1,16 @@
+/* Тема 2: темная тема с оранжевыми деталями */
+body {
+    background-color: #222; /* темный фон */
+    color: #eee; /* светлый текст */
+    font-family: Verdana, sans-serif;
+}
+
+.header {
+    background-color: #ff6600; /* оранжевый */
+    color: white;
+    padding: 12px;
+}
+
+a {
+    color: #ffcc00;
+}

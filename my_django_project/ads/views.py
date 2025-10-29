@@ -19,7 +19,20 @@ from .forms import ReviewForm
 from .models import Review, Ad
 from django.template.loader import render_to_string
 import logging
+from django.views.decorators.http import require_GET
 
+@login_required
+def change_theme(request, theme):
+    if theme in ('theme1', 'theme2', 'theme3'):
+        request.session['theme'] = theme
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+@login_required
+@require_POST
+def set_theme(request, theme_name):
+    if theme_name in ['theme1', 'theme2', 'theme3']:
+        request.session['theme'] = theme_name
+    return redirect(request.META.get('HTTP_REFERER', '/'))
 
 @login_required
 @require_POST
